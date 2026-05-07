@@ -4,11 +4,11 @@ from data import quests
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from schemas import (
-    AcceptQuestRequest,
-    AcceptQuestResponse,
-    CompleteQuestResponse,
-    Quest,
-    QuestListResponse,
+    SolicitacaoAceitarMissao,
+    RespostaAceitarMissao,
+    RespostaConcluirMissao,
+    Missao,
+    RespostaListaMissoes,
 )
 
 app = FastAPI(title="Quest Service", version="1.0.0")
@@ -23,36 +23,36 @@ app.add_middleware(
 BASE_URL = "http://localhost:8002"
 
 
-def quest_to_response(q: dict) -> Quest:
-    return Quest(
-        id=q["id"],
-        title=q["title"],
-        description=q["description"],
-        difficulty=q["difficulty"],
-        difficulty_color=q["difficulty_color"],
-        reward_xp=q["reward_xp"],
-        reward_gold=q["reward_gold"],
-        status=q["status"],
-        hero_id=q["hero_id"],
-        accepted_at=q["accepted_at"],
-        completed_at=q["completed_at"],
-        icon=q["icon"],
+def missao_para_resposta(missao: dict) -> Missao:
+    return Missao(
+        id=missao["id"],
+        titulo=missao["titulo"],
+        descricao=missao["descricao"],
+        dificuldade=missao["dificuldade"],
+        cor_dificuldade=missao["cor_dificuldade"],
+        recompensa_xp=missao["recompensa_xp"],
+        recompensa_ouro=missao["recompensa_ouro"],
+        status=missao["status"],
+        id_heroi=missao["id_heroi"],
+        aceito_em=missao["aceito_em"],
+        concluido_em=missao["concluido_em"],
+        icone=missao["icone"],
         links={
-            "self": f"{BASE_URL}/quests/{q['id']}",
-            "accept": f"{BASE_URL}/quests/{q['id']}/accept"
-            if q["status"] == "available"
+            "self": f"{BASE_URL}/quests/{missao['id']}",
+            "aceitar": f"{BASE_URL}/quests/{missao['id']}/accept"
+            if missao["status"] == "available"
             else None,
-            "complete": f"{BASE_URL}/quests/{q['id']}/complete"
-            if q["status"] == "in_progress"
+            "concluir": f"{BASE_URL}/quests/{missao['id']}/complete"
+            if missao["status"] == "in_progress"
             else None,
         },
     )
 
 
-@app.get("/quests", response_model=QuestListResponse)
-def list_quests():
-    return QuestListResponse(
-        quests=[quest_to_response(q) for q in list(quests.values())],
+@app.get("/quests", response_model=RespostaListaMissoes)
+def listar_missoes():
+    return RespostaListaMissoes(
+        missoes=[missao_para_resposta(missao) for missao in list(quests.values())],
         links={
             "self": f"{BASE_URL}/quests",
             "available": f"{BASE_URL}/quests?status=available",
@@ -62,74 +62,74 @@ def list_quests():
     )
 
 
-@app.get("/quests/{quest_id}", response_model=Quest)
-def get_quest(quest_id: str):
-    quest = quests.get(quest_id)
-    if not quest:
+@app.get("/quests/{quest_id}", response_model=Missao)
+def obter_missao(quest_id: str):
+    missao = quests.get(quest_id)
+    if not missao:
         raise HTTPException(status_code=404, detail="Quest not found")
-    return quest_to_response(quest)
+    return missao_para_resposta(missao)
 
 
-@app.post("/quests/{quest_id}/accept", response_model=AcceptQuestResponse)
-def accept_quest(quest_id: str, body: AcceptQuestRequest):
-    quest = quests.get(quest_id)
-    if not quest:
+@app.post("/quests/{quest_id}/accept", response_model=RespostaAceitarMissao)
+def aceitar_missao(quest_id: str, body: SolicitacaoAceitarMissao):
+    missao = quests.get(quest_id)
+    if not missao:
         raise HTTPException(status_code=404, detail="Quest not found")
-    if quest["status"] != "available":
+    if missao["status"] != "available":
         raise HTTPException(
-            status_code=400, detail=f"Quest is already {quest['status']}"
+            status_code=400, detail=f"Quest is already {missao['status']}"
         )
 
-    quest["status"] = "in_progress"
-    quest["hero_id"] = body.hero_id
-    quest["accepted_at"] = datetime.now().isoformat()
+    missao["status"] = "in_progress"
+    missao["id_heroi"] = body.id_heroi
+    missao["aceito_em"] = datetime.now().isoformat()
 
-    return AcceptQuestResponse(
-        quest_id=quest_id,
-        hero_id=body.hero_id,
+    return RespostaAceitarMissao(
+        id_missao=quest_id,
+        id_heroi=body.id_heroi,
         status="in_progress",
-        message=f"Missão '{quest['title']}' aceita com sucesso!",
+        mensagem=f"Missão '{missao['titulo']}' aceita com sucesso!",
         links={
             "self": f"{BASE_URL}/quests/{quest_id}/accept",
-            "quest": f"{BASE_URL}/quests/{quest_id}",
-            "complete": f"{BASE_URL}/quests/{quest_id}/complete",
+            "missao": f"{BASE_URL}/quests/{quest_id}",
+            "concluir": f"{BASE_URL}/quests/{quest_id}/complete",
         },
     )
 
 
-@app.post("/quests/{quest_id}/complete", response_model=CompleteQuestResponse)
-def complete_quest(quest_id: str):
-    quest = quests.get(quest_id)
-    if not quest:
+@app.post("/quests/{quest_id}/complete", response_model=RespostaConcluirMissao)
+def concluir_missao(quest_id: str):
+    missao = quests.get(quest_id)
+    if not missao:
         raise HTTPException(status_code=404, detail="Quest not found")
-    if quest["status"] != "in_progress":
+    if missao["status"] != "in_progress":
         raise HTTPException(status_code=400, detail="Quest is not in progress")
 
-    quest["status"] = "completed"
-    quest["completed_at"] = datetime.now().isoformat()
+    missao["status"] = "completed"
+    missao["concluido_em"] = datetime.now().isoformat()
 
-    return CompleteQuestResponse(
-        quest_id=quest_id,
-        hero_id=quest["hero_id"],
+    return RespostaConcluirMissao(
+        id_missao=quest_id,
+        id_heroi=missao["id_heroi"],
         status="completed",
-        reward_xp=quest["reward_xp"],
-        reward_gold=quest["reward_gold"],
-        message=f"Missão '{quest['title']}' concluída! Recompensas coletadas.",
+        recompensa_xp=missao["recompensa_xp"],
+        recompensa_ouro=missao["recompensa_ouro"],
+        mensagem=f"Missão '{missao['titulo']}' concluída! Recompensas coletadas.",
         links={
             "self": f"{BASE_URL}/quests/{quest_id}/complete",
-            "quest": f"{BASE_URL}/quests/{quest_id}",
-            "all_quests": f"{BASE_URL}/quests",
+            "missao": f"{BASE_URL}/quests/{quest_id}",
+            "todas_missoes": f"{BASE_URL}/quests",
         },
     )
 
 
 @app.get("/")
-def root():
+def raiz():
     return {
         "service": "Quest Service",
         "version": "1.0.0",
         "links": {
-            "quests": f"{BASE_URL}/quests",
-            "quest_detail": f"{BASE_URL}/quests/{{quest_id}}",
+            "missoes": f"{BASE_URL}/quests",
+            "detalhe_missao": f"{BASE_URL}/quests/{{quest_id}}",
         },
     }

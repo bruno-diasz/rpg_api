@@ -1,9 +1,9 @@
 heroes = {
     "1": {
         "id": "1",
-        "name": "Aranor",
-        "class": "Mago das Sombras",
-        "level": 7,
+        "nome": "Gandalf",
+        "classe": "Mago das Sombras",
+        "nivel": 7,
         "avatar": "🧙",
         "hp": 80,
         "max_hp": 100,
@@ -11,14 +11,14 @@ heroes = {
         "max_mp": 120,
         "xp": 3400,
         "xp_next": 5000,
-        "gold": 250,
-        "stats": {
+        "ouro": 250,
+        "estatisticas": {
             "atk": 72,
             "def": 34,
             "spd": 55,
             "int": 91,
         },
-        "active_quests": [],
-        "completed_quests": [],
+        "missoes_ativas": [],
+        "missoes_concluidas": [],
     }
 }

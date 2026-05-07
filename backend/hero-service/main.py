@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from data import heroes
-from schemas import HeroResponse, StatsResponse, AddXpRequest, AddXpResponse
+from schemas import RespostaHeroi, RespostaEstatisticas, SolicitacaoAdicionarXp, RespostaAdicionarXp
 
 app = FastAPI(title="Hero Service", version="1.0.0")
 
@@ -15,96 +15,96 @@ app.add_middleware(
 BASE_URL = "http://localhost:8001"
 
 
-@app.get("/heroes/{hero_id}", response_model=HeroResponse)
-def get_hero(hero_id: str):
-    hero = heroes.get(hero_id)
-    if not hero:
+@app.get("/heroes/{hero_id}", response_model=RespostaHeroi)
+def obter_heroi(hero_id: str):
+    heroi = heroes.get(hero_id)
+    if not heroi:
         raise HTTPException(status_code=404, detail="Hero not found")
 
-    return HeroResponse(
-        id=hero["id"],
-        name=hero["name"],
-        class_name=hero["class"],
-        level=hero["level"],
-        avatar=hero["avatar"],
-        hp=hero["hp"],
-        max_hp=hero["max_hp"],
-        mp=hero["mp"],
-        max_mp=hero["max_mp"],
-        xp=hero["xp"],
-        xp_next=hero["xp_next"],
-        gold=hero["gold"],
-        active_quests=hero["active_quests"],
-        completed_quests=hero["completed_quests"],
+    return RespostaHeroi(
+        id=heroi["id"],
+        nome=heroi["nome"],
+        nome_classe=heroi["classe"],
+        nivel=heroi["nivel"],
+        avatar=heroi["avatar"],
+        hp=heroi["hp"],
+        max_hp=heroi["max_hp"],
+        mp=heroi["mp"],
+        max_mp=heroi["max_mp"],
+        xp=heroi["xp"],
+        xp_next=heroi["xp_next"],
+        gold=heroi["ouro"],
+        active_quests=heroi["missoes_ativas"],
+        completed_quests=heroi["missoes_concluidas"],
         links={
             "self": f"{BASE_URL}/heroes/{hero_id}",
-            "stats": f"{BASE_URL}/heroes/{hero_id}/stats",
-            "add_xp": f"{BASE_URL}/heroes/{hero_id}/xp",
+            "estatisticas": f"{BASE_URL}/heroes/{hero_id}/stats",
+            "adicionar_xp": f"{BASE_URL}/heroes/{hero_id}/xp",
         },
     )
 
 
-@app.get("/heroes/{hero_id}/stats", response_model=StatsResponse)
-def get_hero_stats(hero_id: str):
-    hero = heroes.get(hero_id)
-    if not hero:
+@app.get("/heroes/{hero_id}/stats", response_model=RespostaEstatisticas)
+def obter_estatisticas_heroi(hero_id: str):
+    heroi = heroes.get(hero_id)
+    if not heroi:
         raise HTTPException(status_code=404, detail="Hero not found")
 
-    stats = hero["stats"]
-    return StatsResponse(
-        hero_id=hero_id,
-        atk=stats["atk"],
-        def_=stats["def"],
-        spd=stats["spd"],
-        int_=stats["int"],
+    estatisticas = heroi["estatisticas"]
+    return RespostaEstatisticas(
+        id_heroi=hero_id,
+        atk=estatisticas["atk"],
+        def_=estatisticas["def"],
+        spd=estatisticas["spd"],
+        int_=estatisticas["int"],
         links={
             "self": f"{BASE_URL}/heroes/{hero_id}/stats",
-            "hero": f"{BASE_URL}/heroes/{hero_id}",
+            "heroi": f"{BASE_URL}/heroes/{hero_id}",
         },
     )
 
 
-@app.patch("/heroes/{hero_id}/xp", response_model=AddXpResponse)
-def add_xp(hero_id: str, body: AddXpRequest):
-    hero = heroes.get(hero_id)
-    if not hero:
+@app.patch("/heroes/{hero_id}/xp", response_model=RespostaAdicionarXp)
+def adicionar_xp(hero_id: str, body: SolicitacaoAdicionarXp):
+    heroi = heroes.get(hero_id)
+    if not heroi:
         raise HTTPException(status_code=404, detail="Hero not found")
 
-    hero["xp"] += body.amount
-    leveled_up = False
-    new_level = None
+    heroi["xp"] += body.quantidade
+    subiu_de_nivel = False
+    novo_nivel = None
 
-    if hero["xp"] >= hero["xp_next"]:
-        hero["xp"] -= hero["xp_next"]
-        hero["level"] += 1
-        hero["xp_next"] = int(hero["xp_next"] * 1.5)
-        hero["max_hp"] += 10
-        hero["hp"] = hero["max_hp"]
-        hero["stats"]["atk"] += 3
-        hero["stats"]["def"] += 2
-        leveled_up = True
-        new_level = hero["level"]
+    if heroi["xp"] >= heroi["xp_next"]:
+        heroi["xp"] -= heroi["xp_next"]
+        heroi["nivel"] += 1
+        heroi["xp_next"] = int(heroi["xp_next"] * 1.5)
+        heroi["max_hp"] += 10
+        heroi["hp"] = heroi["max_hp"]
+        heroi["estatisticas"]["atk"] += 3
+        heroi["estatisticas"]["def"] += 2
+        subiu_de_nivel = True
+        novo_nivel = heroi["nivel"]
 
-    return AddXpResponse(
-        hero_id=hero_id,
-        xp_gained=body.amount,
-        total_xp=hero["xp"],
-        leveled_up=leveled_up,
-        new_level=new_level,
+    return RespostaAdicionarXp(
+        id_heroi=hero_id,
+        xp_ganho=body.quantidade,
+        xp_total=heroi["xp"],
+        subiu_de_nivel=subiu_de_nivel,
+        novo_nivel=novo_nivel,
         links={
             "self": f"{BASE_URL}/heroes/{hero_id}/xp",
-            "hero": f"{BASE_URL}/heroes/{hero_id}",
+            "heroi": f"{BASE_URL}/heroes/{hero_id}",
         },
     )
 
 
 @app.get("/")
-def root():
+def raiz():
     return {
         "service": "Hero Service",
         "version": "1.0.0",
         "links": {
-            "hero": f"{BASE_URL}/heroes/{{hero_id}}",
-            "stats": f"{BASE_URL}/heroes/{{hero_id}}/stats",
+            "heroi": f"{BASE_URL}/heroes/{{hero_id}}",
+            "estatisticas": f"{BASE_URL}/heroes/{{hero_id}}/stats",
         },
     }

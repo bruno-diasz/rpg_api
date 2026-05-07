@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 
-class Stats(BaseModel):
+class Estatisticas(BaseModel):
     atk: int
     def_: int
     spd: int
@@ -12,11 +12,11 @@ class Stats(BaseModel):
         populate_by_name = True
 
 
-class Hero(BaseModel):
+class Heroi(BaseModel):
     id: str
-    name: str
-    class_: str
-    level: int
+    nome: str
+    classe: str
+    nivel: int
     avatar: str
     hp: int
     max_hp: int
@@ -32,11 +32,11 @@ class Hero(BaseModel):
         populate_by_name = True
 
 
-class HeroResponse(BaseModel):
+class RespostaHeroi(BaseModel):
     id: str
-    name: str
-    class_name: str
-    level: int
+    nome: str
+    nome_classe: str
+    nivel: int
     avatar: str
     hp: int
     max_hp: int
@@ -50,8 +50,8 @@ class HeroResponse(BaseModel):
     links: dict
 
 
-class StatsResponse(BaseModel):
-    hero_id: str
+class RespostaEstatisticas(BaseModel):
+    id_heroi: str
     atk: int
     def_: int
     spd: int
@@ -59,14 +59,14 @@ class StatsResponse(BaseModel):
     links: dict
 
 
-class AddXpRequest(BaseModel):
-    amount: int
+class SolicitacaoAdicionarXp(BaseModel):
+    quantidade: int
 
 
-class AddXpResponse(BaseModel):
-    hero_id: str
-    xp_gained: int
-    total_xp: int
-    leveled_up: bool
-    new_level: Optional[int]
+class RespostaAdicionarXp(BaseModel):
+    id_heroi: str
+    xp_ganho: int
+    xp_total: int
+    subiu_de_nivel: bool
+    novo_nivel: Optional[int]
     links: dict

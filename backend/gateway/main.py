@@ -12,27 +12,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-HERO_SERVICE = "http://localhost:8001"
-QUEST_SERVICE = "http://localhost:8002"
-GATEWAY_URL = "http://localhost:8000"
+SERVICO_HEROI = "http://localhost:8001"
+SERVICO_MISSAO = "http://localhost:8002"
+URL_GATEWAY = "http://localhost:8000"
 
 
-def hateoas_envelope(data: dict, path: str) -> dict:
+def envelope_hateoas(data: dict, path: str) -> dict:
     """Wrap response with gateway-level HATEOAS links."""
     return {
         "data": data,
         "_gateway": {
             "service_routed": path,
             "links": {
-                "self": f"{GATEWAY_URL}{path}",
-                "hero": f"{GATEWAY_URL}/api/heroes/1",
-                "quests": f"{GATEWAY_URL}/api/quests",
+                "self": f"{URL_GATEWAY}{path}",
+                "heroi": f"{URL_GATEWAY}/api/heroes/1",
+                "missoes": f"{URL_GATEWAY}/api/quests",
             },
         },
     }
 
 
-async def forward(
+async def encaminhar(
     method: str, url: str, path: str, body: dict | None = None
 ) -> JSONResponse:
     async with httpx.AsyncClient() as client:
@@ -51,7 +51,7 @@ async def forward(
 
             return JSONResponse(
                 status_code=resp.status_code,
-                content=hateoas_envelope(resp.json(), path),
+                content=envelope_hateoas(resp.json(), path),
             )
         except httpx.ConnectError:
             raise HTTPException(status_code=503, detail=f"Service unavailable: {url}")
@@ -63,25 +63,25 @@ async def forward(
 
 
 @app.get("/api/heroes/{hero_id}")
-async def get_hero(hero_id: str):
-    return await forward(
-        "GET", f"{HERO_SERVICE}/heroes/{hero_id}", f"/api/heroes/{hero_id}"
+async def obter_heroi(hero_id: str):
+    return await encaminhar(
+        "GET", f"{SERVICO_HEROI}/heroes/{hero_id}", f"/api/heroes/{hero_id}"
     )
 
 
 @app.get("/api/heroes/{hero_id}/stats")
-async def get_hero_stats(hero_id: str):
-    return await forward(
-        "GET", f"{HERO_SERVICE}/heroes/{hero_id}/stats", f"/api/heroes/{hero_id}/stats"
+async def obter_estatisticas_heroi(hero_id: str):
+    return await encaminhar(
+        "GET", f"{SERVICO_HEROI}/heroes/{hero_id}/stats", f"/api/heroes/{hero_id}/stats"
     )
 
 
 @app.patch("/api/heroes/{hero_id}/xp")
-async def add_xp(hero_id: str, request: Request):
+async def adicionar_xp(hero_id: str, request: Request):
     body = await request.json()
-    return await forward(
+    return await encaminhar(
         "PATCH",
-        f"{HERO_SERVICE}/heroes/{hero_id}/xp",
+        f"{SERVICO_HEROI}/heroes/{hero_id}/xp",
         f"/api/heroes/{hero_id}/xp",
         body,
     )
@@ -91,36 +91,36 @@ async def add_xp(hero_id: str, request: Request):
 
 
 @app.get("/api/quests")
-async def list_quests(status: str = None):
-    url = f"{QUEST_SERVICE}/quests"
+async def listar_missoes(status: str = None):
+    url = f"{SERVICO_MISSAO}/quests"
     if status:
         url += f"?status={status}"
-    return await forward("GET", url, "/api/quests")
+    return await encaminhar("GET", url, "/api/quests")
 
 
 @app.get("/api/quests/{quest_id}")
-async def get_quest(quest_id: str):
-    return await forward(
-        "GET", f"{QUEST_SERVICE}/quests/{quest_id}", f"/api/quests/{quest_id}"
+async def obter_missao(quest_id: str):
+    return await encaminhar(
+        "GET", f"{SERVICO_MISSAO}/quests/{quest_id}", f"/api/quests/{quest_id}"
     )
 
 
 @app.post("/api/quests/{quest_id}/accept")
-async def accept_quest(quest_id: str, request: Request):
+async def aceitar_missao(quest_id: str, request: Request):
     body = await request.json()
-    return await forward(
+    return await encaminhar(
         "POST",
-        f"{QUEST_SERVICE}/quests/{quest_id}/accept",
+        f"{SERVICO_MISSAO}/quests/{quest_id}/accept",
         f"/api/quests/{quest_id}/accept",
         body,
     )
 
 
 @app.post("/api/quests/{quest_id}/complete")
-async def complete_quest(quest_id: str):
-    return await forward(
+async def concluir_missao(quest_id: str):
+    return await encaminhar(
         "POST",
-        f"{QUEST_SERVICE}/quests/{quest_id}/complete",
+        f"{SERVICO_MISSAO}/quests/{quest_id}/complete",
         f"/api/quests/{quest_id}/complete",
     )
 
@@ -129,17 +129,17 @@ async def complete_quest(quest_id: str):
 
 
 @app.get("/")
-def root():
+def raiz():
     return {
         "service": "API Gateway",
         "version": "1.0.0",
         "routes": {
-            "hero": f"{GATEWAY_URL}/api/heroes/{{hero_id}}",
-            "hero_stats": f"{GATEWAY_URL}/api/heroes/{{hero_id}}/stats",
-            "hero_xp": f"{GATEWAY_URL}/api/heroes/{{hero_id}}/xp",
-            "quests": f"{GATEWAY_URL}/api/quests",
-            "quest_detail": f"{GATEWAY_URL}/api/quests/{{quest_id}}",
-            "accept_quest": f"{GATEWAY_URL}/api/quests/{{quest_id}}/accept",
-            "complete_quest": f"{GATEWAY_URL}/api/quests/{{quest_id}}/complete",
+            "heroi": f"{URL_GATEWAY}/api/heroes/{{hero_id}}",
+            "estatisticas_heroi": f"{URL_GATEWAY}/api/heroes/{{hero_id}}/stats",
+            "adicionar_xp": f"{URL_GATEWAY}/api/heroes/{{hero_id}}/xp",
+            "missoes": f"{URL_GATEWAY}/api/quests",
+            "detalhe_missao": f"{URL_GATEWAY}/api/quests/{{quest_id}}",
+            "aceitar_missao": f"{URL_GATEWAY}/api/quests/{{quest_id}}/accept",
+            "concluir_missao": f"{URL_GATEWAY}/api/quests/{{quest_id}}/complete",
         },
     }

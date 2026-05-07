@@ -1,35 +1,35 @@
 import { useState, useEffect, useCallback } from "react";
 
-const GW = "http://localhost:8000";
-const HERO_ID = "1";
+const URL_GATEWAY = "http://localhost:8000";
+const ID_HEROI = "1";
 
-const DIFF_COLOR = {
+const COR_DIFICULDADE = {
   Fácil: "#4ade80",
   Médio: "#facc15",
   Épico: "#f87171",
 };
 
-const STATUS_LABEL = {
+const ROTULO_STATUS = {
   available: "Disponível",
   in_progress: "Em Progresso",
   completed: "Concluída",
 };
 
-const STATUS_COLOR = {
+const COR_STATUS = {
   available: "#60a5fa",
   in_progress: "#facc15",
   completed: "#4ade80",
 };
 
 export default function App() {
-  const [hero, setHero] = useState(null);
-  const [stats, setStats] = useState(null);
-  const [quests, setQuests] = useState([]);
+  const [heroi, setHeroi] = useState(null);
+  const [estatisticas, setEstatisticas] = useState(null);
+  const [missoes, setMissoes] = useState([]);
   const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [carregando, setCarregando] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const addLog = useCallback((method, path, status, payload) => {
+  const adicionarLog = useCallback((method, path, status, payload) => {
     const entry = {
       id: Date.now() + Math.random(),
       time: new Date().toLocaleTimeString("pt-BR"),
@@ -41,14 +41,14 @@ export default function App() {
     setLogs((prev) => [entry, ...prev].slice(0, 30));
   }, []);
 
-  const showToast = (msg, type = "success") => {
+  const mostrarToast = (msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3000);
   };
 
-  const apiFetch = useCallback(
+  const buscarApi = useCallback(
     async (method, path, body = null) => {
-      const url = `${GW}${path}`;
+      const url = `${URL_GATEWAY}${path}`;
       const opts = {
         method,
         headers: { "Content-Type": "application/json" },
@@ -56,63 +56,63 @@ export default function App() {
       };
       const res = await fetch(url, opts);
       const json = await res.json();
-      addLog(method, path, res.status, json);
+      adicionarLog(method, path, res.status, json);
       if (!res.ok) throw new Error(json.detail || "Erro na requisição");
       return json.data;
     },
-    [addLog],
+    [adicionarLog],
   );
 
-  const loadAll = useCallback(async () => {
-    setLoading(true);
+  const carregarTudo = useCallback(async () => {
+    setCarregando(true);
     try {
       const [h, s, q] = await Promise.all([
-        apiFetch("GET", `/api/heroes/${HERO_ID}`),
-        apiFetch("GET", `/api/heroes/${HERO_ID}/stats`),
-        apiFetch("GET", "/api/quests"),
+        buscarApi("GET", `/api/heroes/${ID_HEROI}`),
+        buscarApi("GET", `/api/heroes/${ID_HEROI}/stats`),
+        buscarApi("GET", "/api/quests"),
       ]);
-      setHero(h);
-      setStats(s);
-      setQuests(q.quests || []);
+      setHeroi(h);
+      setEstatisticas(s);
+      setMissoes(q.missoes || []);
     } catch (e) {
-      showToast(e.message, "error");
+      mostrarToast(e.message, "error");
     } finally {
-      setLoading(false);
+      setCarregando(false);
     }
-  }, [apiFetch]);
+  }, [buscarApi]);
 
   useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+    carregarTudo();
+  }, [carregarTudo]);
 
-  const acceptQuest = async (questId) => {
+  const aceitarMissao = async (questId) => {
     try {
-      const res = await apiFetch("POST", `/api/quests/${questId}/accept`, {
-        hero_id: HERO_ID,
+      const res = await buscarApi("POST", `/api/quests/${questId}/accept`, {
+        id_heroi: ID_HEROI,
       });
-      showToast(res.message);
-      await loadAll();
+      mostrarToast(res.message);
+      await carregarTudo();
     } catch (e) {
-      showToast(e.message, "error");
+      mostrarToast(e.message, "error");
     }
   };
 
-  const completeQuest = async (quest) => {
+  const concluirMissao = async (missao) => {
     try {
-      const res = await apiFetch("POST", `/api/quests/${quest.id}/complete`);
-      showToast(res.message);
-      await apiFetch("PATCH", `/api/heroes/${HERO_ID}/xp`, {
-        amount: quest.reward_xp,
+      const res = await buscarApi("POST", `/api/quests/${missao.id}/complete`);
+      mostrarToast(res.message);
+      await buscarApi("PATCH", `/api/heroes/${ID_HEROI}/xp`, {
+        quantidade: missao.recompensa_xp,
       });
-      await loadAll();
+      await carregarTudo();
     } catch (e) {
-      showToast(e.message, "error");
+      mostrarToast(e.message, "error");
     }
   };
 
-  const xpPct = hero ? Math.round((hero.xp / hero.xp_next) * 100) : 0;
-  const hpPct = hero ? Math.round((hero.hp / hero.max_hp) * 100) : 0;
-  const mpPct = hero ? Math.round((hero.mp / hero.max_mp) * 100) : 0;
+  const pct_xp = heroi ? Math.round((heroi.xp / heroi.xp_next) * 100) : 0;
+  const pct_vida = heroi ? Math.round((heroi.hp / heroi.max_hp) * 100) : 0;
+  const pct_mana = heroi ? Math.round((heroi.mp / heroi.max_mp) * 100) : 0;
 
   return (
     <div style={styles.root}>
@@ -136,45 +136,45 @@ export default function App() {
       <div style={styles.body}>
         {/* LEFT — HERO */}
         <aside style={styles.sidebar}>
-          {hero ? (
+          {heroi ? (
             <div style={styles.heroCard}>
-              <div style={styles.heroAvatar}>{hero.avatar}</div>
-              <div style={styles.heroName}>{hero.name}</div>
-              <div style={styles.heroClass}>{hero.class_name}</div>
-              <div style={styles.heroLevel}>Nível {hero.level}</div>
+              <div style={styles.heroAvatar}>{heroi.avatar}</div>
+              <div style={styles.heroName}>{heroi.nome}</div>
+              <div style={styles.heroClass}>{heroi.nome_classe}</div>
+              <div style={styles.heroLevel}>Nível {heroi.nivel}</div>
 
               <div style={styles.bars}>
-                <Bar
+                <Barra
                   label="HP"
-                  value={hero.hp}
-                  max={hero.max_hp}
-                  pct={hpPct}
+                  value={heroi.hp}
+                  max={heroi.max_hp}
+                  pct={pct_vida}
                   color="#ef4444"
                 />
-                <Bar
+                <Barra
                   label="MP"
-                  value={hero.mp}
-                  max={hero.max_mp}
-                  pct={mpPct}
+                  value={heroi.mp}
+                  max={heroi.max_mp}
+                  pct={pct_mana}
                   color="#818cf8"
                 />
-                <Bar
+                <Barra
                   label="XP"
-                  value={hero.xp}
-                  max={hero.xp_next}
-                  pct={xpPct}
+                  value={heroi.xp}
+                  max={heroi.xp_next}
+                  pct={pct_xp}
                   color="#facc15"
                 />
               </div>
 
-              <div style={styles.gold}>💰 {hero.gold} ouro</div>
+              <div style={styles.gold}>💰 {heroi.ouro} ouro</div>
 
-              {stats && (
+              {estatisticas && (
                 <div style={styles.statsGrid}>
-                  <StatBox label="ATK" value={stats.atk} icon="⚔️" />
-                  <StatBox label="DEF" value={stats.def_} icon="🛡️" />
-                  <StatBox label="SPD" value={stats.spd} icon="💨" />
-                  <StatBox label="INT" value={stats.int_} icon="🧠" />
+                  <CaixaEstatistica label="ATK" value={estatisticas.atk} icon="⚔️" />
+                  <CaixaEstatistica label="DEF" value={estatisticas.def_} icon="🛡️" />
+                  <CaixaEstatistica label="SPD" value={estatisticas.spd} icon="💨" />
+                  <CaixaEstatistica label="INT" value={estatisticas.int_} icon="🧠" />
                 </div>
               )}
             </div>
@@ -187,12 +187,12 @@ export default function App() {
         <main style={styles.main}>
           <h2 style={styles.sectionTitle}>📜 Mural de Missões</h2>
           <div style={styles.questList}>
-            {quests.map((q) => (
-              <QuestCard
-                key={q.id}
-                quest={q}
-                onAccept={acceptQuest}
-                onComplete={completeQuest}
+            {missoes.map((missao) => (
+              <CartaoMissao
+                key={missao.id}
+                missao={missao}
+                onAccept={aceitarMissao}
+                onComplete={concluirMissao}
               />
             ))}
           </div>
@@ -206,7 +206,7 @@ export default function App() {
               <div style={styles.logEmpty}>Nenhuma requisição ainda...</div>
             )}
             {logs.map((l) => (
-              <LogEntry key={l.id} log={l} />
+              <EntradaLog key={l.id} log={l} />
             ))}
           </div>
         </aside>
@@ -215,7 +215,7 @@ export default function App() {
   );
 }
 
-function Bar({ label, value, max, pct, color }) {
+function Barra({ label, value, max, pct, color }) {
   return (
     <div style={styles.barRow}>
       <span style={styles.barLabel}>{label}</span>
@@ -231,7 +231,7 @@ function Bar({ label, value, max, pct, color }) {
   );
 }
 
-function StatBox({ label, value, icon }) {
+function CaixaEstatistica({ label, value, icon }) {
   return (
     <div style={styles.statBox}>
       <span>{icon}</span>
@@ -241,58 +241,58 @@ function StatBox({ label, value, icon }) {
   );
 }
 
-function QuestCard({ quest, onAccept, onComplete }) {
-  const diffColor = DIFF_COLOR[quest.difficulty] || "#aaa";
-  const statusColor = STATUS_COLOR[quest.status] || "#aaa";
+function CartaoMissao({ missao, onAccept, onComplete }) {
+  const corDificuldade = COR_DIFICULDADE[missao.dificuldade] || "#aaa";
+  const corStatus = COR_STATUS[missao.status] || "#aaa";
 
   return (
     <div style={styles.questCard}>
       <div style={styles.questHeader}>
-        <span style={styles.questIcon}>{quest.icon}</span>
+        <span style={styles.questIcon}>{missao.icone}</span>
         <div style={{ flex: 1 }}>
-          <div style={styles.questTitle}>{quest.title}</div>
-          <div style={styles.questDesc}>{quest.description}</div>
+          <div style={styles.questTitle}>{missao.titulo}</div>
+          <div style={styles.questDesc}>{missao.descricao}</div>
         </div>
         <div style={styles.questMeta}>
           <span
             style={{
               ...styles.badge,
-              color: diffColor,
-              borderColor: diffColor,
+              color: corDificuldade,
+              borderColor: corDificuldade,
             }}
           >
-            {quest.difficulty}
+            {missao.dificuldade}
           </span>
           <span
             style={{
               ...styles.badge,
-              color: statusColor,
-              borderColor: statusColor,
+              color: corStatus,
+              borderColor: corStatus,
             }}
           >
-            {STATUS_LABEL[quest.status]}
+            {ROTULO_STATUS[missao.status]}
           </span>
         </div>
       </div>
 
       <div style={styles.questFooter}>
-        <span style={styles.reward}>✨ {quest.reward_xp} XP</span>
-        <span style={styles.reward}>💰 {quest.reward_gold} ouro</span>
+        <span style={styles.reward}>✨ {missao.recompensa_xp} XP</span>
+        <span style={styles.reward}>💰 {missao.recompensa_ouro} ouro</span>
         <div style={{ marginLeft: "auto" }}>
-          {quest.status === "available" && (
-            <button style={styles.btnAccept} onClick={() => onAccept(quest.id)}>
+          {missao.status === "available" && (
+            <button style={styles.btnAccept} onClick={() => onAccept(missao.id)}>
               ⚔️ Aceitar
             </button>
           )}
-          {quest.status === "in_progress" && (
+          {missao.status === "in_progress" && (
             <button
               style={styles.btnComplete}
-              onClick={() => onComplete(quest)}
+              onClick={() => onComplete(missao)}
             >
               ✅ Concluir
             </button>
           )}
-          {quest.status === "completed" && (
+          {missao.status === "completed" && (
             <span style={styles.doneLabel}>🏆 Completa</span>
           )}
         </div>
@@ -301,7 +301,7 @@ function QuestCard({ quest, onAccept, onComplete }) {
   );
 }
 
-function LogEntry({ log }) {
+function EntradaLog({ log }) {
   const [open, setOpen] = useState(false);
   const methodColor =
     {
